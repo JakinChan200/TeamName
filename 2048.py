@@ -90,11 +90,11 @@ def on_left_key(event, screen):
             for k in range(j):  #0 to j
                 if data[i][j] == "":
                     continue
-                elif k == j-1: #case where the two numbers are next to each other
+                if k == j-1: #case where the two numbers are next to each other
                     if data[i][k] == data[i][j]:
                         data[i][k] = str(int(data[i][k])*2)
                         data[i][j] = ""
-                elif data[i][k] == "": #case where there is a number in between
+                if data[i][k] == "": #case where there is a number in between
                     if k != 0 and data[i][k-1] == data[i][j]:
                         data[i][k-1] = str(int(data[i][k-1])*2)
                         data[i][j] = ""
@@ -102,7 +102,6 @@ def on_left_key(event, screen):
                         data[i][k] = data[i][j]
                         data[i][j] = ""
     create_grid(screen)
-    print("Left arrow key pressed")
 
 def on_right_key(event, screen):
     for i in range(4):
@@ -110,11 +109,11 @@ def on_right_key(event, screen):
             for k in range(3, j-1, -1):
                 if data[i][j] == "":
                     continue
-                elif j != 3 and k == j+1: #case where the two numbers are next to each other
+                if j != 3 and k == j+1: #case where the two numbers are next to each other
                     if data[i][k] == data[i][j]:
                         data[i][k] = str(int(data[i][k])*2)
                         data[i][j] = ""
-                elif data[i][k] == "": #case where there is a blank in between
+                if data[i][k] == "": #case where there is a blank in between
                     if k != 3 and data[i][k+1] == data[i][j]: # case where the last one we looked at is the one 
                         data[i][k+1] = str(int(data[i][k+1])*2)
                         data[i][j] = ""
@@ -122,34 +121,46 @@ def on_right_key(event, screen):
                         data[i][k] = data[i][j]
                         data[i][j] = ""
     create_grid(screen)
-    print("Right arrow key pressed")
 
 def on_up_key(event, screen):
     for j in range(4):                  #iterating through columns
         for i in range(4):              #iterating through rows
-            for k in range(j):          #iterating through column up to j
+            for k in range(i):          #iterating through column up to j
                 if data[i][j] == "":    #nothing there
                     continue
-                elif k == j - 1:                            #If they are next to each other
-                    if data[i][j] == data[i][k]:            #If values are the same
-                        data[i][k] = str(int(data[i][k])*2) #Combine them
+                if k == i - 1:                            #If they are next to each other
+                    if data[i][j] == data[k][j]:            #If values are the same
+                        data[k][j] = str(int(data[k][j])*2) #Combine them
                         data[i][j] = ""
-                elif data[i][k] == "":    #if there is at least one tile empty above it
-                    #print(i,j,k)
+                if data[k][j] == "":    #if there is at least one tile empty above it
                     if k != 0 and data[k-1][j] == data[i][j]:
                         data[k-1][j] = str(int(data[k-1][j])*2)
                         data[i][j] = ""
                     else:
-                        print(data[k][j])
-                        data[k][j] = data[i][j]
+                        data[k][j] = data[i][j] 
                         data[i][j] = ""
-                    # if data[i][j]
-                        
+                    
     create_grid(screen)
-    print("Up arrow key pressed")
 
 def on_down_key(event, screen):
-    print("Down arrow key pressed")
+    for j in range(4):                          #iterating through columns
+        for i in range(3, -1, -1):              #iterating through rows
+            for k in range(3, i-1, -1):         #iterating through column up to j
+                if data[i][j] == "":            #nothing there
+                    continue
+                if k == i + 1:                            #If they are next to each other
+                    if data[i][j] == data[k][j]:            #If values are the same
+                        data[k][j] = str(int(data[k][j])*2) #Combine them
+                        data[i][j] = ""
+                if data[k][j] == "":    #if there is at least one tile empty above it
+                    if k != 3 and data[k+1][j] == data[i][j]:
+                        data[k+1][j] = str(int(data[k+1][j])*2)
+                        data[i][j] = ""
+                    else:
+                        data[k][j] = data[i][j] 
+                        data[i][j] = ""
+                    
+    create_grid(screen)
     
 
 if __name__ == "__main__":
