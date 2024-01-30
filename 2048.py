@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import *
 import random
-from PIL import Image, ImageTk
-from pynput import keyboard
-from pynput.keyboard import Key
+# from PIL import Image, ImageTk
+# from pynput import keyboard
+# from pynput.keyboard import Key
 
 bgColor = "#AADB1E"
 
@@ -21,7 +21,7 @@ def display_board():
     screen.geometry('%dx%d+%d+%d' % (800, 800, (screen_width/2) - (800/2), (screen_height/2) - (800/2))) #Set screen width and height depending on monitor's screen's width and height
     screen.resizable(False,False) #Make it so you can't shrink the window size
 
-    screen.bind('<Left>', lambda event: on_left_key(event,screen))
+    screen.bind('<Left>', lambda event: on_left_key(event,screen)) #Bind arrow keys and read inputs
     screen.bind('<Right>', lambda event: on_right_key(event,screen))
     screen.bind('<Up>', lambda event: on_up_key(event,screen))
     screen.bind('<Down>', lambda event: on_down_key(event,screen))
@@ -44,32 +44,39 @@ def display_board():
     create_text_and_buttons(screen) #Create text and buttons (New Game, Bot Plays, You Play)
     create_grid(screen) #Create the 4 by 4 grid
 
-    screen.mainloop() #Display's the screen
+    screen.mainloop() #Display's the screen 
 
 def create_grid(screen):
     global data
     global color
+    color_map = {k[0]:k[1] for k in color} #Create color map for more efficient color setting
+
+    for children in screen.winfo_children():        #cleaning page 
+        info = children.grid_info()
+        if info['row'] >= 2 and info['row'] <= 6:
+            children.destroy()
+
     for i in range(4): #Create 4 by 4 grid
         for j in range(4):
             backgroundColor = "#aa7dfa"
-            for k in color:
-                if data[i][j] == k[0]:
-                    backgroundColor = k[1]
-            label = tk.Label(screen, text=data[i][j], relief = "solid", borderwidth = 2, width = 30, height = 30, bg = backgroundColor, font = ("Arial", 35)) #Create the labels for each grid space
+            dij = data[i][j]
+            if dij in color_map:
+                backgroundColor = color_map[dij]
+            label = tk.Label(screen, text= dij, relief = "solid", borderwidth = 2, width = 30, height = 30, bg = backgroundColor, font = ("Arial", 35)) #Create the labels for each grid space
             label.grid(row = i+2,column = j) #Set the grid starting from 2,0
 
 def create_text_and_buttons(screen):
     header_label = tk.Label(screen, text = "2048", font = ("Monospace", 50), fg = "#1b1c1e", bg = bgColor) #2048 Text located at 0,0
     header_label.grid(row = 0, column = 0, pady = (30,10), padx = 20, columnspan = 2)
 
-    play_yourself_button = tk.Button(screen, text = "You Play", bg = "#d342f8", command=lambda: click_button(play_yourself_button, screen)) #Play Yourself button located at 0,2
+    play_yourself_button = tk.Button(screen, text = "You Play", bg = "#d342f8") #Play Yourself button located at 0,2
     play_yourself_button.grid(row = 0, column = 2,sticky = "ew", pady=(0,3))
-    play_yourself_button.bind("<Button-1>", lambda event: change_color(play_yourself_button,event))
+    play_yourself_button.bind("<Button-1>", lambda event: change_color(play_yourself_button,event, screen))
     play_yourself_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_yourself_button,event))
 
-    play_bot_button = tk.Button(screen, text = "AI Play", bg = "#d342f8",  command=lambda: click_button(play_bot_button, screen)) #AI Play button located at 1,2
+    play_bot_button = tk.Button(screen, text = "AI Play", bg = "#d342f8") #AI Play button located at 1,2
     play_bot_button.grid(row = 1, column = 2, sticky = "ew", pady = (0,30))
-    play_bot_button.bind("<Button-1>", lambda event: change_color(play_bot_button,event))
+    play_bot_button.bind("<Button-1>", lambda event: change_color(play_bot_button,event, screen))
     play_bot_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_bot_button,event))
 
     score_text = tk.Label(screen,text = "Current Score: 0", bg = bgColor, font = ("Monospace",11))
@@ -81,22 +88,37 @@ def create_text_and_buttons(screen):
 def update_score(add_amount,screen):
     global player_score
     player_score += add_amount
+
+    screen.grid_slaves(row = 0, column = 3)[0].destroy()
     score_text = tk.Label(screen,text = "Current Score: {}".format(player_score), bg = bgColor, font = ("Monospace",11))
     score_text.grid(row = 0, column = 3)
 
-def change_color(button, event):
+def change_color(button, event, screen):
     button.configure(bg = "#594d58")
+    reset_game(screen) #Reset the game when a button is pressed
     button["state"] = "disabled"
 
 def change_back_color(button, event):
     button.configure(bg = "#d342f8")
     button["state"] = "normal"
- 
-def click_button(button, screen):
-    pass
-    # create_grid(screen) #Reset the board
-    # TODO if "you play" button go to regular game
-    # TODO else if "" bot plays
+
+def reset_game(screen):
+    global data
+    global player_score
+    global max_player_score
+    data = [["", "", "", ""], ["", "", "", ""], ["", "", "", ""], ["", "", "", ""]] #Reset all tiles to empty
+    create_Start_State() #Generate 2 random tiles
+    create_grid(screen) #Populate the board
+    if player_score > max_player_score: #Set Max score
+        max_player_score = player_score
+    player_score = 0 #Reset current score
+    screen.grid_slaves(row = 0, column = 3)[0].destroy() #Remove previous current score widget to prevent overlap
+    score_text = tk.Label(screen,text = "Current Score: {}".format(player_score), bg = bgColor, font = ("Monospace",11)) #Display Score
+    score_text.grid(row = 0, column = 3)
+
+    screen.grid_slaves(row = 1, column = 3)[0].destroy() #Remove previous max score widget to prevent overlap
+    max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11)) #Display Max Score
+    max_score_text.grid(row = 1, column = 3, pady = (0,30))
 
 def create_Start_State():
     global data
@@ -129,24 +151,21 @@ def check_if_end():
     global data
     for i in range(4):
         for j in range(4):
-            if data[i][j] == "":
+            dij = data[i][j]
+            if dij == "":
                 return False
             
-            if i != 0:
-                if data[i][j] == data[i-1][j]:
-                    return False
+            if i != 0 and dij == data[i-1][j]:
+                return False
                 
-            if i != 3:
-                if data[i][j] == data[i+1][j]:
-                    return False
+            if i != 3 and dij == data[i+1][j]:
+                return False
             
-            if j != 0:
-                if data[i][j] == data[i][j-1]:
-                    return False
+            if j != 0 and dij == data[i][j-1]:
+                return False
                 
-            if j != 3:
-                if data[i][j] == data[i][j+1]:
-                    return False
+            if j != 3 and dij == data[i][j+1]:
+                return False
     return True
 
 def on_left_key(event, screen):
@@ -158,20 +177,26 @@ def on_left_key(event, screen):
             for k in range(j):  #0 to j
                 if data[i][j] == "":
                     continue
-                if k == j-1: #case where the two numbers are next to each other
-                    if data[i][k] == data[i][j]:
-                        data[i][k] = str(int(data[i][k])*2)
-                        update_score(int(data[i][k]),screen)
+                if k == j-1:                                #case where you are looking at the position directly to the left of j in row i
+                    dij = data[i][j]
+                    dik = data[i][k]
+                    if dik == dij:
+                        data[i][k] = str(int(dik)*2)
+                        update_score(int(data[i][k]),screen)#update_score needs int
                         data[i][j] = ""
                         new_tile_flag = True
-                if data[i][k] == "": #case where there is a number in between
-                    if k != 0 and data[i][k-1] == data[i][j]:
-                        data[i][k-1] = str(int(data[i][k-1])*2)
-                        update_score(int(data[i][k-1]),screen)
+                if data[i][k] == "":                        #case where there is a blank at data[i][k]
+                    dik_minus_one = data[i][k-1]
+                    dij = data[i][j]
+                    if k != 0 and dik_minus_one == dij:     #case where k is not the leftmost pos and value in data[i][k-1] is the same as the value in data[i][j]
+                        #add data[i][k-1] and data[i][j] and then move it to data[i][k-1]
+                        data[i][k-1] = str(int(dik_minus_one)*2)
+                        update_score(int(data[i][k-1]), screen)
                         data[i][j] = ""
                         new_tile_flag = True
-                    else:
-                        data[i][k] = data[i][j]
+                    else:                                   #case where k is the leftmost pos or value in data[i][k-1] is not the same as the value in data[i][j]
+                        #move data[i][j] to data[i][k]
+                        data[i][k] = dij
                         data[i][j] = ""
                         new_tile_flag = True
     if new_tile_flag:          
@@ -179,10 +204,12 @@ def on_left_key(event, screen):
         if check_if_end():
             if player_score > max_player_score:
                 max_player_score = player_score
+                screen.grid_slaves(row = 1, column = 3)[0].destroy()
                 max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
                 max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            print("GAME ENDED")
-    create_grid(screen)
+            create_grid(screen)
+            display_end_screen(screen)
+        create_grid(screen)
 
 def on_right_key(event, screen):
     global player_score
@@ -214,10 +241,12 @@ def on_right_key(event, screen):
         if check_if_end():
             if player_score > max_player_score:
                 max_player_score = player_score
+                screen.grid_slaves(row = 1, column = 3)[0].destroy()
                 max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
                 max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            print("GAME ENDED")
-    create_grid(screen)
+            create_grid(screen)
+            display_end_screen(screen)
+        create_grid(screen)
 
 def on_up_key(event, screen):
     global player_score
@@ -249,10 +278,12 @@ def on_up_key(event, screen):
         if check_if_end():
             if player_score > max_player_score:
                 max_player_score = player_score
+                screen.grid_slaves(row = 1, column = 3)[0].destroy()
                 max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
                 max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            print("GAME ENDED") 
-    create_grid(screen)
+            create_grid(screen)
+            display_end_screen(screen)
+        create_grid(screen)
 
 def on_down_key(event, screen):
     global player_score
@@ -284,10 +315,38 @@ def on_down_key(event, screen):
         if check_if_end():
             if player_score > max_player_score:
                 max_player_score = player_score
+                screen.grid_slaves(row = 1, column = 3)[0].destroy()
                 max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
                 max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            print("GAME ENDED")          
-    create_grid(screen)
+            create_grid(screen)
+            display_end_screen(screen)
+        create_grid(screen)
+
+def display_end_screen(screen): #GAME OVER screen
+    global player_score
+    end_screen = tk.Tk()
+    end_screen.title("Game Over")
+    screen_width, screen_height = end_screen.winfo_screenwidth(), end_screen.winfo_screenheight()               #Get screen width and height
+    end_screen.geometry('%dx%d+%d+%d' % (400, 400, (screen_width/2) - (400/2), (screen_height/2) - (400/2)))    #Set screen width and height depending on monitor's screen's width and height
+    end_screen.resizable(False,False)                                                                           #Make it so you can't shrink the window size
+
+    background_canvas = tk.Canvas(end_screen, width = 400, height = 400)
+    background_canvas.pack()
+
+    background_photo = tk.PhotoImage(master = end_screen, file="endGameBGImage.png") #Background image for game over screen
+    background_canvas.create_image(0,0,anchor = "nw", image = background_photo)
+
+    background_canvas.create_text(200,100,font = "monospace 35 bold", fill = "black", text = "Game Over!") #Game Over Text
+    background_canvas.create_text(200,200,font = "monospace 25", fill = "black", text = "Your Score: {}".format(player_score)) #Current Score TExt
+
+    reset_button = tk.Button(end_screen, text = "Reset Game", bg = "white", width = 10, height = 1, font = ("Monospace",12), command=lambda: game_over_reset(end_screen, screen))
+    reset_button.place(relx = 0.5, rely = 0.8, anchor = "center")
+                        
+    end_screen.mainloop()
     
+def game_over_reset(end_screen, screen): #Closes Game Over Screen and resets the board
+    end_screen.destroy()
+    reset_game(screen)
+
 if __name__ == "__main__":
     display_board()
