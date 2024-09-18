@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 import random
+import copy
 # from PIL import Image, ImageTk
 # from pynput import keyboard
 # from pynput.keyboard import Key
@@ -70,7 +71,7 @@ def create_text_and_buttons(screen):
     header_label.grid(row = 0, column = 0, pady = (30,10), padx = 20, columnspan = 2)
 
     play_yourself_button = tk.Button(screen, text = "You Play", bg = "#d342f8") #Play Yourself button located at 0,2
-    play_yourself_button.grid(row = 0, column = 2,sticky = "ew", pady=(0,3))
+    play_yourself_button.grid(row = 0, column = 2, sticky = "ew", pady=(0,3))
     play_yourself_button.bind("<Button-1>", lambda event: change_color(play_yourself_button,event, screen))
     play_yourself_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_yourself_button,event))
 
@@ -242,7 +243,7 @@ def on_right_key(event, screen):
             if player_score > max_player_score:
                 max_player_score = player_score
                 screen.grid_slaves(row = 1, column = 3)[0].destroy()
-                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
+                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace", 11))
                 max_score_text.grid(row = 1, column = 3, pady = (0,30))
             create_grid(screen)
             display_end_screen(screen)
@@ -347,6 +348,212 @@ def display_end_screen(screen): #GAME OVER screen
 def game_over_reset(end_screen, screen): #Closes Game Over Screen and resets the board
     end_screen.destroy()
     reset_game(screen)
+
+def evaluation(board): #Evaluate the state of the board (data)
+    # Give points for empty tiles, adjacent tiles with smallest difference, 
+    points = 0
+    for i in range(4):
+        for k in range(4):
+            if board[i][k] == "":
+                points += 4
+            '''
+            if left of curr is either twice or half of curr
+            if (board[i-i][k] == (2 * board[i][k])) or (board[i-1][k] == (board[i][k] / 2))
+            '''
+    # Give penalties for distance to same tile
+    return points
+
+def create_random_tile_local(board):
+    '''
+    adds 2 and then 4 in each open spot, one by one
+    possibility #1: return list of boards
+        con: the function that calls it has to deal with the list
+    possibility #2: yield instead of return
+
+    Currently outputs list of boards
+    '''
+    all_boards = []
+    openSpots = list()
+    for i in range(4):
+        for j in range(4):
+            if board[i][j] == "":
+                openSpots.append([i, j])
+    if len(openSpots) != 0:
+        for spot in openSpots:  #spot is a list of x,y coordinates
+            board[spot[0]][spot[1]] = "2" #This empty spot has a 2
+            all_boards.append(copy.deepcopy(board)) #Track this position
+            board[spot[0]][spot[1]] = "4" #Set the 2 to a 4 spot
+            all_boards.append(copy.deepcopy(board)) #Track this position
+            board[spot[0]][spot[1]] = "" #Undo the 2 to a blank spot and loop to the other open spots 
+    return all_boards
+
+def check_if_end_local(local_board):
+    for i in range(4):
+        for j in range(4):
+            dij = local_board[i][j]
+            if dij == "":
+                return False
+            
+            if i != 0 and dij == local_board[i-1][j]:
+                return False
+                
+            if i != 3 and dij == local_board[i+1][j]:
+                return False
+            
+            if j != 0 and dij == local_board[i][j-1]:
+                return False
+                
+            if j != 3 and dij == local_board[i][j+1]:
+                return False
+    return True
+
+def move_right_local(board):
+    #Move the board array to the right
+    #Return new_board (array of array)
+    for i in range(4):
+        for j in range(3, -1, -1):
+            for k in range(3, j-1, -1):
+                if board[i][j] == "":
+                    continue
+                if j != 3 and k == j+1:                         #case where the two numbers are next to each other
+                    if board[i][k] == board[i][j]:
+                        board[i][k] = str(int(board[i][k])*2)
+                        board[i][j] = ""
+                if board[i][k] == "":                           #case where there is a blank in between
+                    if k != 3 and board[i][k+1] == board[i][j]: #case where the last one we looked at is the one 
+                        board[i][k+1] = str(int(board[i][k+1])*2)
+                        board[i][j] = ""
+                    else:
+                        board[i][k] = board[i][j]
+                        board[i][j] = ""
+    return board
+
+def move_down_local(board):
+    #Move the board array to the right
+    #Return new_board (array of array)
+    for j in range(4):                          #iterating through columns
+        for i in range(3, -1, -1):              #iterating through rows
+            for k in range(3, i-1, -1):         #iterating through column up to j
+                if board[i][j] == "":            #nothing there
+                    continue
+                if k == i + 1:                            #If they are next to each other
+                    if board[i][j] == board[k][j]:            #If values are the same
+                        board[k][j] = str(int(board[k][j])*2) #Combine them
+                        board[i][j] = ""
+                if data[k][j] == "":    #if there is at least one tile empty above it
+                    if k != 3 and board[k+1][j] == board[i][j]:
+                        board[k+1][j] = str(int(board[k+1][j])*2)
+                        board[i][j] = ""
+                    else:
+                        board[k][j] = board[i][j] 
+                        board[i][j] = ""
+    return board
+
+def move_up_local(board):
+    #Move the board array to the right
+    #Return board (array of array)
+    for j in range(4):                 #iterating through columns
+        for i in range(4):              #iterating through rows
+            for k in range(i):          #iterating through column up to j
+                if board[i][j] == "":    #nothing there
+                    continue
+                if k == i - 1:                            #If they are next to each other
+                    if board[i][j] == board[k][j]:            #If values are the same
+                        board[k][j] = str(int(board[k][j])*2) #Combine them
+                        board[i][j] = ""
+                if board[k][j] == "":    #if there is at least one tile empty above it
+                    if k != 0 and board[k-1][j] == board[i][j]:
+                        board[k-1][j] = str(int(board[k-1][j])*2)
+                        board[i][j] = ""
+                    else:
+                        board[k][j] = board[i][j] 
+                        board[i][j] = ""
+    return board
+
+def move_left_local(board):
+    #Move the board array to the right
+    #Return board (array of array)
+    for i in range(4):          #rows
+        for j in range(4):      #columns
+            for k in range(j):  #0 to j
+                if board[i][j] == "":
+                    continue
+                if k == j-1:                                #case where you are looking at the position directly to the left of j in row i
+                    dij = board[i][j]
+                    dik = board[i][k]
+                    if dik == dij:
+                        board[i][k] = str(int(dik)*2)
+                        board[i][j] = ""
+                if board[i][k] == "":                        #case where there is a blank at data[i][k]
+                    dik_minus_one = board[i][k-1]
+                    dij = board[i][j]
+                    if k != 0 and dik_minus_one == dij:     #case where k is not the leftmost pos and value in data[i][k-1] is the same as the value in data[i][j]
+                        board[i][k-1] = str(int(dik_minus_one)*2)
+                        board[i][j] = ""
+                    else:                                   #case where k is the leftmost pos or value in data[i][k-1] is not the same as the value in data[i][j]
+                        board[i][k] = dij
+                        board[i][j] = ""
+    return board
+
+#need to know who all calls minimax?? who calls minimax first? is board always local or does it start as global and then be local?
+#board is current state it is checking 
+
+MAX_DEPTH = 15
+
+def minimax(board, depth, is_max):
+    if (depth == MAX_DEPTH) or check_if_end_local(board):
+        return evaluation(board)
+    
+    if is_max: #maximizing player
+        curr_val = -100000
+        
+        new_board = move_right_local(board)
+        val_right = minimax(new_board, depth + 1, False) #Evaluate position from moving right
+        
+        new_board = move_left_local(board)
+        val_left = minimax(new_board, depth + 1, False)
+
+        new_board = move_up_local(board)
+        val_up = minimax(new_board, depth + 1, False)
+        
+        new_board = move_down_local(board)
+        val_down = minimax(new_board, depth + 1, False)
+
+        curr_val = max(val_down, val_right, val_left, val_up, curr_val) #Get max value (is maximizing)
+        return curr_val
+    else:   #random 'player'
+        #everytime there is a move from the AI, consider all possible combinations with each empty tile taking on either a 2 or a 4.
+        #assume the randomizer gives the worst possibility and continue the game from there. worst is leads to game over.
+        curr_val = 100000
+        all_boards = create_random_tile_local(board)
+        for single_board in all_boards:
+            single_board_val = minimax(single_board, depth + 1, True)
+            curr_val = min(curr_val, single_board_val)
+        return curr_val
+
+def bot_plays(): #When you press AI plays button, will make the moves
+    while True:
+        #Move = Call Minimax for the move
+        #Simulates the move Right
+        #right_move_score = minimax(board_after_right_move, 0, True) EX: (right, 5.0)
+        #right_move = {'r': right_move_score}
+
+        #Simulates the move Left
+        #Calls Minimax and holds the value EX: (left, 2.0)
+
+        #Simulates the move Up
+        #Calls Minimax and holds the value EX: (up, 15.0)
+
+        #Simulates the move Down
+        #Calls Minimax and holds the value EX: (down, 20.0)
+
+        #Picks AND choose the move with highest value EX: Picks down and then does it
+        #use existing functions to make moves
+
+        if check_if_end():
+            #Put out game over screen or something (Game ended)
+            break
+    return 0
 
 if __name__ == "__main__":
     display_board()
