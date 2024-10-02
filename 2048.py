@@ -1,3 +1,4 @@
+import time
 import tkinter as tk
 from tkinter import *
 import random
@@ -47,6 +48,26 @@ def display_board():
 
     screen.mainloop() #Display's the screen 
 
+def create_text_and_buttons(screen):
+    header_label = tk.Label(screen, text = "2048", font = ("Monospace", 50), fg = "#1b1c1e", bg = bgColor) #2048 Text located at 0,0
+    header_label.grid(row = 0, column = 0, pady = (30,10), padx = 20, columnspan = 2)
+
+    play_yourself_button = tk.Button(screen, text = "You Play", bg = "#d342f8") #Play Yourself button located at 0,2
+    play_yourself_button.grid(row = 0, column = 2, sticky = "ew", pady=(0,3))
+    play_yourself_button.bind("<Button-1>", lambda event: change_color(play_yourself_button,event, screen))
+    play_yourself_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_yourself_button,event))
+
+    play_bot_button = tk.Button(screen, text = "AI Play", bg = "#d342f8") #AI Play button located at 1,2
+    play_bot_button.grid(row = 1, column = 2, sticky = "ew", pady = (0,30))
+    play_bot_button.bind("<Button-1>", lambda event: change_color(play_bot_button,event, screen, True))
+    play_bot_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_bot_button,event))
+
+    score_text = tk.Label(screen,text = "Current Score: 0", bg = bgColor, font = ("Monospace",11))
+    score_text.grid(row = 0, column = 3)
+
+    max_score_text = tk.Label(screen,text = "Max Player Score: 0", bg = bgColor, font = ("Monospace",11))
+    max_score_text.grid(row = 1, column = 3, pady = (0,30))
+    
 def create_grid(screen):
     global data
     global color
@@ -66,26 +87,6 @@ def create_grid(screen):
             label = tk.Label(screen, text= dij, relief = "solid", borderwidth = 2, width = 30, height = 30, bg = backgroundColor, font = ("Arial", 35)) #Create the labels for each grid space
             label.grid(row = i+2,column = j) #Set the grid starting from 2,0
 
-def create_text_and_buttons(screen):
-    header_label = tk.Label(screen, text = "2048", font = ("Monospace", 50), fg = "#1b1c1e", bg = bgColor) #2048 Text located at 0,0
-    header_label.grid(row = 0, column = 0, pady = (30,10), padx = 20, columnspan = 2)
-
-    play_yourself_button = tk.Button(screen, text = "You Play", bg = "#d342f8") #Play Yourself button located at 0,2
-    play_yourself_button.grid(row = 0, column = 2, sticky = "ew", pady=(0,3))
-    play_yourself_button.bind("<Button-1>", lambda event: change_color(play_yourself_button,event, screen))
-    play_yourself_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_yourself_button,event))
-
-    play_bot_button = tk.Button(screen, text = "AI Play", bg = "#d342f8") #AI Play button located at 1,2
-    play_bot_button.grid(row = 1, column = 2, sticky = "ew", pady = (0,30))
-    play_bot_button.bind("<Button-1>", lambda event: change_color(play_bot_button,event, screen))
-    play_bot_button.bind("<ButtonRelease-1>", lambda event: change_back_color(play_bot_button,event))
-
-    score_text = tk.Label(screen,text = "Current Score: 0", bg = bgColor, font = ("Monospace",11))
-    score_text.grid(row = 0, column = 3)
-
-    max_score_text = tk.Label(screen,text = "Max Player Score: 0", bg = bgColor, font = ("Monospace",11))
-    max_score_text.grid(row = 1, column = 3, pady = (0,30))
-    
 def update_score(add_amount,screen):
     global player_score
     player_score += add_amount
@@ -94,9 +95,11 @@ def update_score(add_amount,screen):
     score_text = tk.Label(screen,text = "Current Score: {}".format(player_score), bg = bgColor, font = ("Monospace",11))
     score_text.grid(row = 0, column = 3)
 
-def change_color(button, event, screen):
+def change_color(button, event, screen, isBot = False):
     button.configure(bg = "#594d58")
-    reset_game(screen) #Reset the game when a button is pressed
+    reset_game(screen) #Reset the game when either "You play" or "AI play" button is pressed
+    if isBot:
+        bot_plays(event, screen)
     button["state"] = "disabled"
 
 def change_back_color(button, event):
@@ -200,7 +203,7 @@ def on_left_key(event, screen):
                         data[i][k] = dij
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:          
+    if new_tile_flag:
         create_random_tile()
         if check_if_end():
             if player_score > max_player_score:
@@ -237,7 +240,7 @@ def on_right_key(event, screen):
                         data[i][k] = data[i][j]
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:
+    if new_tile_flag:   #two tiles get combined
         create_random_tile()
         if check_if_end():
             if player_score > max_player_score:
@@ -349,8 +352,9 @@ def game_over_reset(end_screen, screen): #Closes Game Over Screen and resets the
     end_screen.destroy()
     reset_game(screen)
 
+LARGE_TILE_THRESHOLD = 128
 def evaluation(board): #Evaluate the state of the board (data)
-    # Give points for empty tiles, adjacent tiles with smallest difference, 
+    # Give points for empty tiles
     points = 0
     for i in range(4):
         for k in range(4):
@@ -360,7 +364,50 @@ def evaluation(board): #Evaluate the state of the board (data)
             if left of curr is either twice or half of curr
             if (board[i-i][k] == (2 * board[i][k])) or (board[i-1][k] == (board[i][k] / 2))
             '''
-    # Give penalties for distance to same tile
+            '''
+            # Give penalties if big difference between adjacent tiles
+            if board[i][k] != "":
+                curr_tile_value = board[i][k] 
+                #Check Right Tile (If exists)
+                if (k < 3) and (board[i][k+1] != ""):
+                    right_tile_value = board[i][k+1]
+                    minOfTwo = min(right_tile_value, curr_tile_value)
+                    points -= abs(int(curr_tile_value) - int(right_tile_value)) / int(minOfTwo)
+                #Check Down Tile (If exists) 
+                if (i < 3) and (board[i + 1][k] != ""):
+                    down_tile_value = board[i + 1][k]
+                    minOfTwo = min(down_tile_value,curr_tile_value)
+                    points -= abs(int(curr_tile_value) - int(down_tile_value)) / int(minOfTwo)
+                #Check Left Tile (If exists)
+                if (k > 0) and (board[i][k-1] != ""):
+                    left_tile_value = board[i][k - 1]
+                    minOfTwo = min(left_tile_value,curr_tile_value)
+                    points -= abs(int(curr_tile_value) - int(left_tile_value)) / int(minOfTwo)
+                #Check Up Tile (If exists)
+                if (i > 0) and (board[i - 1][k] != ""):
+                    up_tile_value = board[i-1][k]
+                    minOfTwo = min(up_tile_value,curr_tile_value)
+                    points -= abs(int(curr_tile_value) - int(up_tile_value)) / int(minOfTwo)
+            '''
+            if(i == 0 and (board[i][k] != "")):
+                if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
+                    points += int(board[i][k])
+            
+            if(i == 3 and (board[i][k] != "")):
+                if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
+                    points += int(board[i][k])
+            
+            if(k == 0 and (board[i][k] != "")):
+                if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
+                    points += int(board[i][k])
+            
+            if(k == 3 and (board[i][k] != "")):
+                if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
+                    points += int(board[i][k])    
+            # # Give bonuses for large values on the edge
+            # if ((i == 0) or (i == 3) or (k == 0) or (k == 3)) and (board[i][k] != ""): #If tile is on the edge
+            #     if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
+            #         points += int(board[i][k])                  #PROBLEM: point values are very large so we need to "normalize somehow"
     return points
 
 def create_random_tile_local(board):
@@ -372,7 +419,7 @@ def create_random_tile_local(board):
 
     Currently outputs list of boards
     '''
-    all_boards = []
+    all_boards = list()
     openSpots = list()
     for i in range(4):
         for j in range(4):
@@ -407,7 +454,8 @@ def check_if_end_local(local_board):
                 return False
     return True
 
-def move_right_local(board):
+def move_right_local(boards):
+    board = copy.deepcopy(boards)
     #Move the board array to the right
     #Return new_board (array of array)
     for i in range(4):
@@ -428,7 +476,8 @@ def move_right_local(board):
                         board[i][j] = ""
     return board
 
-def move_down_local(board):
+def move_down_local(boards):
+    board = copy.deepcopy(boards)
     #Move the board array to the right
     #Return new_board (array of array)
     for j in range(4):                          #iterating through columns
@@ -449,7 +498,8 @@ def move_down_local(board):
                         board[i][j] = ""
     return board
 
-def move_up_local(board):
+def move_up_local(boards):
+    board = copy.deepcopy(boards)
     #Move the board array to the right
     #Return board (array of array)
     for j in range(4):                 #iterating through columns
@@ -470,7 +520,8 @@ def move_up_local(board):
                         board[i][j] = ""
     return board
 
-def move_left_local(board):
+def move_left_local(boards):
+    board = copy.deepcopy(boards)
     #Move the board array to the right
     #Return board (array of array)
     for i in range(4):          #rows
@@ -498,7 +549,7 @@ def move_left_local(board):
 #need to know who all calls minimax?? who calls minimax first? is board always local or does it start as global and then be local?
 #board is current state it is checking 
 
-MAX_DEPTH = 15
+MAX_DEPTH = 2
 
 def minimax(board, depth, is_max):
     if (depth == MAX_DEPTH) or check_if_end_local(board):
@@ -531,29 +582,70 @@ def minimax(board, depth, is_max):
             curr_val = min(curr_val, single_board_val)
         return curr_val
 
-def bot_plays(): #When you press AI plays button, will make the moves
+def bot_plays(event, screen): #When you press AI plays button, will make the moves
+    #curr_board = data.copy()
     while True:
+        curr_board = copy.deepcopy(data)
+        screen.update()
+        all_moves = {}
         #Move = Call Minimax for the move
         #Simulates the move Right
-        #right_move_score = minimax(board_after_right_move, 0, True) EX: (right, 5.0)
-        #right_move = {'r': right_move_score}
+        board_after_right_move = move_right_local(curr_board)
+        right_move_score = minimax(board_after_right_move, 0 ,True)
+        if (board_after_right_move != curr_board):
+            all_moves['r'] = right_move_score
 
         #Simulates the move Left
-        #Calls Minimax and holds the value EX: (left, 2.0)
+        board_after_left_move = move_left_local(curr_board)
+        left_move_score = minimax(board_after_left_move, 0 ,True)   #Calls Minimax and holds the value EX: (left, 2.0)
+        if (board_after_left_move != curr_board):
+            all_moves['l'] = left_move_score
 
         #Simulates the move Up
+        board_after_up_move = move_up_local(curr_board)
+        up_move_score = minimax(board_after_up_move, 0 ,True)
         #Calls Minimax and holds the value EX: (up, 15.0)
+        if (board_after_up_move != curr_board):
+            all_moves['u'] = up_move_score
 
         #Simulates the move Down
+        board_after_down_move = move_down_local(curr_board)
+        down_move_score = minimax(board_after_down_move, 0 ,True)
         #Calls Minimax and holds the value EX: (down, 20.0)
+        if (board_after_down_move != curr_board):
+            all_moves['d'] = down_move_score
 
         #Picks AND choose the move with highest value EX: Picks down and then does it
         #use existing functions to make moves
+        bot_move = max(all_moves, key=all_moves.get) #key
+        if bot_move == 'r':
+            on_right_key(event, screen)
+            #time.sleep(1)
+        elif bot_move == 'l':
+            on_left_key(event,screen)
+            #time.sleep(1)
+        elif bot_move == 'u':
+            on_up_key(event, screen)
+            #time.sleep(1)
+        elif bot_move == 'd':
+            on_down_key(event,screen)
+            #time.sleep(1)
+        else:
+            KeyError
+            
+        #On X key functions already checks if the game is ended
 
-        if check_if_end():
-            #Put out game over screen or something (Game ended)
-            break
-    return 0
+# def printBoard(board):
+#     print("board:")
+#     for i in range(4):
+#         for j in range(4):
+#             if (board[i][j] == ''):
+#                 print('.', end=' ')
+#             else:
+#                 print(board[i][j], end=' ')
+#         print()
+#     print()
+
 
 if __name__ == "__main__":
     display_board()
