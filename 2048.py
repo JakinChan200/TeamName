@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import *
 import random
 import copy
+import threading
 # from PIL import Image, ImageTk
 # from pynput import keyboard
 # from pynput.keyboard import Key
@@ -364,15 +365,37 @@ def evaluation(board): #Evaluate the state of the board (data)
             if left of curr is either twice or half of curr
             if (board[i-i][k] == (2 * board[i][k])) or (board[i-1][k] == (board[i][k] / 2))
             '''
-            '''
+            
             # Give penalties if big difference between adjacent tiles
+            differenceBetweenAdjacentTilesPenalty = 0;
             if board[i][k] != "":
-                curr_tile_value = board[i][k] 
+                curr_tile_value = board[i][k]
                 #Check Right Tile (If exists)
                 if (k < 3) and (board[i][k+1] != ""):
                     right_tile_value = board[i][k+1]
                     minOfTwo = min(right_tile_value, curr_tile_value)
-                    points -= abs(int(curr_tile_value) - int(right_tile_value)) / int(minOfTwo)
+                    differenceBetweenAdjacentTilesPenalty += abs(int(curr_tile_value) - int(right_tile_value))
+                #Check Down Tile (If exists) 
+                if (i < 3) and (board[i + 1][k] != ""):
+                    down_tile_value = board[i + 1][k]
+                    minOfTwo = min(down_tile_value,curr_tile_value)
+                    differenceBetweenAdjacentTilesPenalty += abs(int(curr_tile_value) - int(down_tile_value))
+                #Check Left Tile (If exists)
+                if (k > 0) and (board[i][k-1] != ""):
+                    left_tile_value = board[i][k - 1]
+                    minOfTwo = min(left_tile_value,curr_tile_value)
+                    differenceBetweenAdjacentTilesPenalty += abs(int(curr_tile_value) - int(left_tile_value))
+                #Check Up Tile (If exists)
+                if (i > 0) and (board[i - 1][k] != ""):
+                    up_tile_value = board[i-1][k]
+                    minOfTwo = min(up_tile_value,curr_tile_value)
+                    differenceBetweenAdjacentTilesPenalty += abs(int(curr_tile_value) - int(up_tile_value))
+
+                """
+                if (k < 3) and (board[i][k+1] != ""):
+                    right_tile_value = board[i][k+1]
+                    minOfTwo = min(right_tile_value, curr_tile_value)
+                    points -= abs(int(curr_tile_value) - int(right_tile_value)) / int(minOfTwo) #avg
                 #Check Down Tile (If exists) 
                 if (i < 3) and (board[i + 1][k] != ""):
                     down_tile_value = board[i + 1][k]
@@ -388,19 +411,18 @@ def evaluation(board): #Evaluate the state of the board (data)
                     up_tile_value = board[i-1][k]
                     minOfTwo = min(up_tile_value,curr_tile_value)
                     points -= abs(int(curr_tile_value) - int(up_tile_value)) / int(minOfTwo)
-            '''
+                """
+
+            #Add penalties if the tile value is at least as large as LARGE_TILE_THRESHOLD
             if(i == 0 and (board[i][k] != "")):
                 if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
                     points += int(board[i][k])
-            
             if(i == 3 and (board[i][k] != "")):
                 if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
                     points += int(board[i][k])
-            
             if(k == 0 and (board[i][k] != "")):
                 if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
                     points += int(board[i][k])
-            
             if(k == 3 and (board[i][k] != "")):
                 if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
                     points += int(board[i][k])    
@@ -408,6 +430,8 @@ def evaluation(board): #Evaluate the state of the board (data)
             # if ((i == 0) or (i == 3) or (k == 0) or (k == 3)) and (board[i][k] != ""): #If tile is on the edge
             #     if int(board[i][k]) >= LARGE_TILE_THRESHOLD: #If the tile value is larger enough (than we specify)
             #         points += int(board[i][k])                  #PROBLEM: point values are very large so we need to "normalize somehow"
+            
+            #points = adjacentTilesPenaltyWeight * differenceBetweenAdjacentTilesPenalty
     return points
 
 def create_random_tile_local(board):
@@ -549,7 +573,7 @@ def move_left_local(boards):
 #need to know who all calls minimax?? who calls minimax first? is board always local or does it start as global and then be local?
 #board is current state it is checking 
 
-MAX_DEPTH = 2
+MAX_DEPTH = 4
 
 def minimax(board, depth, is_max):
     if (depth == MAX_DEPTH) or check_if_end_local(board):
@@ -588,33 +612,74 @@ def bot_plays(event, screen): #When you press AI plays button, will make the mov
         curr_board = copy.deepcopy(data)
         screen.update()
         all_moves = {}
+        lock = threading.Lock()
+
         #Move = Call Minimax for the move
         #Simulates the move Right
-        board_after_right_move = move_right_local(curr_board)
-        right_move_score = minimax(board_after_right_move, 0 ,True)
-        if (board_after_right_move != curr_board):
-            all_moves['r'] = right_move_score
+        def move_right_local2(curr_board):
+            board_after_right_move = move_right_local(curr_board)
+            right_move_score = minimax(board_after_right_move, 0 ,True)
+            if (board_after_right_move != curr_board):
+                with lock:
+                    all_moves['r'] = right_move_score
+        t1 = threading.Thread(target=move_right_local2, args=(curr_board,))
+        #board_after_right_move = move_right_local(curr_board)
+        #right_move_score = minimax(board_after_right_move, 0 ,True)
+        #if (board_after_right_move != curr_board):
+        #    all_moves['r'] = right_move_score
 
         #Simulates the move Left
-        board_after_left_move = move_left_local(curr_board)
-        left_move_score = minimax(board_after_left_move, 0 ,True)   #Calls Minimax and holds the value EX: (left, 2.0)
-        if (board_after_left_move != curr_board):
-            all_moves['l'] = left_move_score
+        def move_left_local2(curr_board):
+            board_after_left_move = move_left_local(curr_board)
+            left_move_score = minimax(board_after_left_move, 0 ,True)   #Calls Minimax and holds the value EX: (left, 2.0)
+            if (board_after_left_move != curr_board):
+                with lock:
+                    all_moves['l'] = left_move_score
+        t2 = threading.Thread(target=move_left_local2, args=(curr_board,))
+        #board_after_left_move = move_left_local(curr_board)
+        #left_move_score = minimax(board_after_left_move, 0 ,True)   #Calls Minimax and holds the value EX: (left, 2.0)
+        #if (board_after_left_move != curr_board):
+        #    all_moves['l'] = left_move_score
 
         #Simulates the move Up
-        board_after_up_move = move_up_local(curr_board)
-        up_move_score = minimax(board_after_up_move, 0 ,True)
+        def move_up_local2(curr_board):  
+            board_after_up_move = move_up_local(curr_board)
+            up_move_score = minimax(board_after_up_move, 0 ,True)
+            if (board_after_up_move != curr_board):
+                with lock:
+                    all_moves['u'] = up_move_score
+        t3 = threading.Thread(target=move_up_local2, args=(curr_board,))
+        #board_after_up_move = move_up_local(curr_board)
+        #up_move_score = minimax(board_after_up_move, 0 ,True)
         #Calls Minimax and holds the value EX: (up, 15.0)
-        if (board_after_up_move != curr_board):
-            all_moves['u'] = up_move_score
+        #if (board_after_up_move != curr_board):
+        #    all_moves['u'] = up_move_score
 
         #Simulates the move Down
-        board_after_down_move = move_down_local(curr_board)
-        down_move_score = minimax(board_after_down_move, 0 ,True)
+        def move_down_local2(curr_board):
+            board_after_down_move = move_down_local(curr_board)
+            down_move_score = minimax(board_after_down_move, 0 ,True)
+            if (board_after_down_move != curr_board):
+                with lock:
+                    all_moves['d'] = down_move_score
+        t4 = threading.Thread(target=move_down_local2, args=(curr_board,))
+        #board_after_down_move = move_down_local(curr_board)
+        #down_move_score = minimax(board_after_down_move, 0 ,True)
         #Calls Minimax and holds the value EX: (down, 20.0)
-        if (board_after_down_move != curr_board):
-            all_moves['d'] = down_move_score
+        #if (board_after_down_move != curr_board):
+        #    all_moves['d'] = down_move_score
 
+        t1.start()
+        t2.start()
+        t3.start()
+        t4.start()
+
+        #threads join here
+        t1.join()
+        t2.join()
+        t3.join()
+        t4.join()
+            
         #Picks AND choose the move with highest value EX: Picks down and then does it
         #use existing functions to make moves
         bot_move = max(all_moves, key=all_moves.get) #key
