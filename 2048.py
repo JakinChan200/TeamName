@@ -131,8 +131,8 @@ def create_Start_State():
     piece_one_y = random.randint(0,3) #Random Y Starting Positionnotiis
     piece_two_x = random.randint(0,3)
     piece_two_y = random.randint(0,3)
-    piece_one_value = random.choice([2,4])  
-    piece_two_value = random.choice([2,4])
+    piece_one_value = 2 if random.random() < 0.9 else 4 
+    piece_two_value = 2 if random.random() < 0.9 else 4 
     
     while piece_one_x == piece_two_x and piece_one_y == piece_two_y: #Make sure the 2 pieces aren't on the same spot
         piece_two_x = random.randint(0,3)
@@ -573,9 +573,14 @@ def move_left_local(boards):
 #need to know who all calls minimax?? who calls minimax first? is board always local or does it start as global and then be local?
 #board is current state it is checking 
 
+<<<<<<< HEAD
 MAX_DEPTH = 4
 
 def minimax(board, depth, is_max):
+=======
+MAX_DEPTH = 2
+def minimax(board, depth, is_max, alpha, beta):
+>>>>>>> 60d95614977d7f85376317eaa074a1abec552bac
     if (depth == MAX_DEPTH) or check_if_end_local(board):
         return evaluation(board)
     
@@ -583,18 +588,22 @@ def minimax(board, depth, is_max):
         curr_val = -100000
         
         new_board = move_right_local(board)
-        val_right = minimax(new_board, depth + 1, False) #Evaluate position from moving right
+        val_right = minimax(new_board, depth + 1, False, alpha, beta) #Evaluate position from moving right
         
         new_board = move_left_local(board)
-        val_left = minimax(new_board, depth + 1, False)
+        val_left = minimax(new_board, depth + 1, False, alpha, beta)
 
         new_board = move_up_local(board)
-        val_up = minimax(new_board, depth + 1, False)
+        val_up = minimax(new_board, depth + 1, False, alpha, beta)
         
         new_board = move_down_local(board)
-        val_down = minimax(new_board, depth + 1, False)
+        val_down = minimax(new_board, depth + 1, False, alpha, beta)
 
-        curr_val = max(val_down, val_right, val_left, val_up, curr_val) #Get max value (is maximizing)
+        # curr_val = max(val_down, val_right, val_left, val_up, curr_val) #Get max value (is maximizing)
+        curr_val = max(alpha, val_down, val_right, val_left, val_up)
+        # alpha = max(alpha, curr_val)
+        # if beta <= alpha:
+        #     break
         return curr_val
     else:   #random 'player'
         #everytime there is a move from the AI, consider all possible combinations with each empty tile taking on either a 2 or a 4.
@@ -602,8 +611,11 @@ def minimax(board, depth, is_max):
         curr_val = 100000
         all_boards = create_random_tile_local(board)
         for single_board in all_boards:
-            single_board_val = minimax(single_board, depth + 1, True)
+            single_board_val = minimax(single_board, depth + 1, True, alpha, beta)
             curr_val = min(curr_val, single_board_val)
+            beta = min(single_board_val, beta)
+            if beta <= alpha:
+                break
         return curr_val
 
 def bot_plays(event, screen): #When you press AI plays button, will make the moves
@@ -616,6 +628,7 @@ def bot_plays(event, screen): #When you press AI plays button, will make the mov
 
         #Move = Call Minimax for the move
         #Simulates the move Right
+<<<<<<< HEAD
         def move_right_local2(curr_board):
             board_after_right_move = move_right_local(curr_board)
             right_move_score = minimax(board_after_right_move, 0 ,True)
@@ -651,11 +664,28 @@ def bot_plays(event, screen): #When you press AI plays button, will make the mov
         t3 = threading.Thread(target=move_up_local2, args=(curr_board,))
         #board_after_up_move = move_up_local(curr_board)
         #up_move_score = minimax(board_after_up_move, 0 ,True)
+=======
+        board_after_right_move = move_right_local(curr_board)
+        right_move_score = minimax(board_after_right_move, 0 ,True, -1000, 1000)
+        if (board_after_right_move != curr_board):
+            all_moves['r'] = right_move_score
+
+        #Simulates the move Left
+        board_after_left_move = move_left_local(curr_board)
+        left_move_score = minimax(board_after_left_move, 0 ,True, -1000, 1000)   #Calls Minimax and holds the value EX: (left, 2.0)
+        if (board_after_left_move != curr_board):
+            all_moves['l'] = left_move_score
+
+        #Simulates the move Up
+        board_after_up_move = move_up_local(curr_board)
+        up_move_score = minimax(board_after_up_move, 0 ,True, -1000, 1000)
+>>>>>>> 60d95614977d7f85376317eaa074a1abec552bac
         #Calls Minimax and holds the value EX: (up, 15.0)
         #if (board_after_up_move != curr_board):
         #    all_moves['u'] = up_move_score
 
         #Simulates the move Down
+<<<<<<< HEAD
         def move_down_local2(curr_board):
             board_after_down_move = move_down_local(curr_board)
             down_move_score = minimax(board_after_down_move, 0 ,True)
@@ -665,6 +695,10 @@ def bot_plays(event, screen): #When you press AI plays button, will make the mov
         t4 = threading.Thread(target=move_down_local2, args=(curr_board,))
         #board_after_down_move = move_down_local(curr_board)
         #down_move_score = minimax(board_after_down_move, 0 ,True)
+=======
+        board_after_down_move = move_down_local(curr_board)
+        down_move_score = minimax(board_after_down_move, 0 ,True, -1000, 1000)
+>>>>>>> 60d95614977d7f85376317eaa074a1abec552bac
         #Calls Minimax and holds the value EX: (down, 20.0)
         #if (board_after_down_move != curr_board):
         #    all_moves['d'] = down_move_score
@@ -697,6 +731,8 @@ def bot_plays(event, screen): #When you press AI plays button, will make the mov
             #time.sleep(1)
         else:
             KeyError
+            
+        # time.sleep(0.5)
             
         #On X key functions already checks if the game is ended
 
