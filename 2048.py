@@ -356,6 +356,43 @@ def game_over_reset(end_screen, screen): #Closes Game Over Screen and resets the
 LARGE_TILE_THRESHOLD = 128
 def evaluation(board): #Evaluate the state of the board (data)
     # Give points for empty tiles
+    
+    # emptyTilesWeight = 270
+    # mergeWeight = 700
+    # sumWeight = 11
+    # monotonicityWeight = 47
+    
+    # monotonicityPower = 4
+    # monotonicityLeft = 0
+    # monotonicityRight = 0
+    
+    # empty = 0
+    # points = 0
+    # sum = 0
+    # merges = 0
+    # temp = 0
+    
+    # for i in range(4):
+    #     temp = 0
+    #     for k in range(4):
+    #         if board[i][k] == "":   #counting empty spots (this and next line)
+    #             empty += 1
+    #         else:
+    #             currTile = int(board[i][k])
+    #             sum += currTile
+    #             if temp == 0:      #checking how many merges we can do (this line and the next 4)
+    #                 temp = currTile
+    #             else:
+    #                 if currTile == temp: 
+    #                     merges += 1
+    #                 if currTile > temp:     #monotonicity
+    #                     monotonicityRight += abs(pow(currTile, monotonicityPower) - pow(temp, monotonicityPower))
+    #                 else:
+    #                     monotonicityLeft += abs(pow(temp, monotonicityPower) - pow(currTile, monotonicityPower))
+    #                 temp = currTile
+                    
+    # points = 200000 - (sum * sumWeight) + (empty * emptyTilesWeight) + (merges * mergeWeight) - (monotonicityWeight * min(monotonicityLeft, monotonicityRight))
+
     points = 0
     for i in range(4):
         for k in range(4):
