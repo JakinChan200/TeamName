@@ -5,14 +5,15 @@ import random
 import copy
 import threading
 
-# from botLib import botLib, add, myprint
+from botLib import botLib, convertBoardToC
 
-import ctypes
-botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/botLib.dll')
+# import ctypes
+# botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/botLib.dll')
 
 
 botLib.myprint()
 print(botLib.add(5, 3))
+
 # print(bar())
 # from PIL import Image, ImageTk
 # from pynput import keyboard
@@ -183,6 +184,19 @@ def check_if_end():
                 return False
     return True
 
+def updateBoard(new_tile_flag, screen, player_score, max_player_score):
+    if new_tile_flag:
+        create_random_tile()
+        if check_if_end():
+            if player_score > max_player_score:
+                max_player_score = player_score
+                screen.grid_slaves(row = 1, column = 3)[0].destroy()
+                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace", 11))
+                max_score_text.grid(row = 1, column = 3, pady = (0,30))
+            create_grid(screen)
+            display_end_screen(screen)
+        create_grid(screen)
+
 def on_left_key(event, screen):
     global player_score
     global max_player_score
@@ -214,17 +228,7 @@ def on_left_key(event, screen):
                         data[i][k] = dij
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:
-        create_random_tile()
-        if check_if_end():
-            if player_score > max_player_score:
-                max_player_score = player_score
-                screen.grid_slaves(row = 1, column = 3)[0].destroy()
-                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
-                max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            create_grid(screen)
-            display_end_screen(screen)
-        create_grid(screen)
+    updateBoard(new_tile_flag, screen, player_score, max_player_score)
 
 def on_right_key(event, screen):
     global player_score
@@ -251,17 +255,8 @@ def on_right_key(event, screen):
                         data[i][k] = data[i][j]
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:   #two tiles get combined
-        create_random_tile()
-        if check_if_end():
-            if player_score > max_player_score:
-                max_player_score = player_score
-                screen.grid_slaves(row = 1, column = 3)[0].destroy()
-                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace", 11))
-                max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            create_grid(screen)
-            display_end_screen(screen)
-        create_grid(screen)
+    updateBoard(new_tile_flag, screen, player_score, max_player_score)
+
 
 def on_up_key(event, screen):
     global player_score
@@ -288,17 +283,8 @@ def on_up_key(event, screen):
                         data[k][j] = data[i][j] 
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:
-        create_random_tile()  
-        if check_if_end():
-            if player_score > max_player_score:
-                max_player_score = player_score
-                screen.grid_slaves(row = 1, column = 3)[0].destroy()
-                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
-                max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            create_grid(screen)
-            display_end_screen(screen)
-        create_grid(screen)
+    updateBoard(new_tile_flag, screen, player_score, max_player_score)
+
 
 def on_down_key(event, screen):
     global player_score
@@ -325,17 +311,8 @@ def on_down_key(event, screen):
                         data[k][j] = data[i][j] 
                         data[i][j] = ""
                         new_tile_flag = True
-    if new_tile_flag:             
-        create_random_tile()  
-        if check_if_end():
-            if player_score > max_player_score:
-                max_player_score = player_score
-                screen.grid_slaves(row = 1, column = 3)[0].destroy()
-                max_score_text = tk.Label(screen,text = "Max Player Score: {}".format(max_player_score), bg = bgColor, font = ("Monospace",11))
-                max_score_text.grid(row = 1, column = 3, pady = (0,30))
-            create_grid(screen)
-            display_end_screen(screen)
-        create_grid(screen)
+    updateBoard(new_tile_flag, screen, player_score, max_player_score)
+
 
 def display_end_screen(screen): #GAME OVER screen
     global player_score
