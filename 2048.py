@@ -4,6 +4,16 @@ from tkinter import *
 import random
 import copy
 import threading
+
+# from botLib import botLib, add, myprint
+
+import ctypes
+botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/botLib.dll')
+
+
+botLib.myprint()
+print(botLib.add(5, 3))
+# print(bar())
 # from PIL import Image, ImageTk
 # from pynput import keyboard
 # from pynput.keyboard import Key
