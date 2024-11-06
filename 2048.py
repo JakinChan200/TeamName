@@ -285,7 +285,6 @@ def on_up_key(event, screen):
                         new_tile_flag = True
     updateBoard(new_tile_flag, screen, player_score, max_player_score)
 
-
 def on_down_key(event, screen):
     global player_score
     global max_player_score
@@ -384,7 +383,7 @@ def evaluation(board): #Evaluate the state of the board (data)
     for i in range(4):
         for k in range(4):
             if board[i][k] == "":
-                points += 4
+                points += 16
             '''
             if left of curr is either twice or half of curr
             if (board[i-i][k] == (2 * board[i][k])) or (board[i-1][k] == (board[i][k] / 2))
