@@ -324,7 +324,7 @@ def display_end_screen(screen): #GAME OVER screen
     background_canvas = tk.Canvas(end_screen, width = 400, height = 400)
     background_canvas.pack()
 
-    background_photo = tk.PhotoImage(master = end_screen, file="endGameBGImage.png") #Background image for game over screen
+    background_photo = tk.PhotoImage(master = end_screen, file="images/endGameBGImage.png") #Background image for game over screen
     background_canvas.create_image(0,0,anchor = "nw", image = background_photo)
 
     background_canvas.create_text(200,100,font = "monospace 35 bold", fill = "black", text = "Game Over!") #Game Over Text

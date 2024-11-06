@@ -13,7 +13,9 @@
 
 
 ## Overview
-This is a Python application based off of the popular online minigame "2048" where one tries to achieve the 2048 tile through combining smaller tiles. Our application keeps track of your highest score, and has an option for the bot to automatically play the game.
+This is a Python application based off of the popular online minigame "2048" where one tries to achieve the 2048 tile through combining smaller tiles. There are two ways of playing the game, either you play or the bot plays.
+The game starts with 2 tiles, either a 2 tile or a 4 tile, spawning another 2 or 4 tile after every move.
+The goal is to maximize the highest tile on the board by combining pairs of tiles left, right, up, and down.
 
 ## Tech Stack
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
