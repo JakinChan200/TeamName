@@ -1,32 +1,33 @@
-#include <ctype.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <algorithm>
+#include <bits/stdc++.h>
 
-#include "2048.h"
+using namespace std;
 
-void myprint(){
-    printf("hello world\n");
+typedef uint64_t board_t;
+typedef uint16_t row_t;
+
+static const board_t ROW_MASK = 0xFFFFULL;
+static const board_t COL_MASK = 0x000F000F000F000FULL;
+
+static inline void printBoard(board_t board){
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            uint8_t power = board & 0xf;
+            printf("%6u", (power == 0) ? 0 : 1 << power);
+            board >>= 4;
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
-int add(int num,  int num2){
-    return num + num2;
-}
-
-static int countEmpty(board_t x){
+static int count_empty(board_t x){
     if(x == 0){
         return 16;
     }
 
     //https://stackoverflow.com/questions/38225571/count-number-of-zero-nibbles-in-an-unsigned-64-bit-integer
-    //Gather 1s into the 1s position of each 4
     x |= (x >> 1);
     x |= (x >> 2);
-    //Zero the other positions and flip the value of the 1s position
     x = ~x & 0x1111111111111111ULL;
 
     x += x >> 32;
@@ -34,6 +35,27 @@ static int countEmpty(board_t x){
     x += x >>  8;
     x += x >>  4; 
     return x & 0xf;
+}
+
+static inline board_t unpack_col(row_t row) {
+    board_t tmp = row;
+    return (tmp | (tmp << 12ULL) | (tmp << 24ULL) | (tmp << 36ULL)) & COL_MASK;
+}
+
+static inline row_t reverse_row(row_t row) {
+    return (row >> 12) | ((row >> 4) & 0x00F0)  | ((row << 4) & 0x0F00) | (row << 12);
+}
+
+static inline board_t transpose(board_t x)
+{
+    board_t a1 = x & 0xF0F00F0FF0F00F0FULL;
+    board_t a2 = x & 0x0000F0F00000F0F0ULL;
+    board_t a3 = x & 0x0F0F00000F0F0000ULL;
+    board_t a = a1 | (a2 << 12) | (a3 >> 12);
+    board_t b1 = a & 0xFF00FF0000FF00FFULL;
+    board_t b2 = a & 0x00FF00FF00000000ULL;
+    board_t b3 = a & 0x00000000FF00FF00ULL;
+    return b1 | (b2 >> 24) | (b3 << 24);
 }
 
 static row_t row_left_table [65536];
@@ -52,7 +74,9 @@ static const float SCORE_SUM_WEIGHT = 11.0f;
 static const float SCORE_MERGES_WEIGHT = 700.0f;
 static const float SCORE_EMPTY_WEIGHT = 270.0f;
 
+//Builds all possible results
 void init_tables() {
+    //For every possible row
     for (unsigned row = 0; row < 65536; ++row) {
         unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -62,6 +86,7 @@ void init_tables() {
         };
 
         // Score
+        //Calculate score by adding up (power - 1) * tileValue
         float score = 0.0f;
         for (int i = 0; i < 4; ++i) {
             int rank = line[i];
@@ -115,10 +140,11 @@ void init_tables() {
             SCORE_MONOTONICITY_WEIGHT * std::min(monotonicity_left, monotonicity_right) -
             SCORE_SUM_WEIGHT * sum;
 
+        //From here and below, store every possible output
         // execute a move to the left
         for (int i = 0; i < 3; ++i) {
             int j;
-            for (j = i + 1; j < 4; ++j) {
+            for (j = i + 1; j < 4; ++j) { //Find the first non-zero tile right of i
                 if (line[j] != 0) break;
             }
             if (j == 4) break; // no more tiles to the right
@@ -143,13 +169,77 @@ void init_tables() {
         row_t rev_result = reverse_row(result);
         unsigned rev_row = reverse_row(row);
 
-        row_left_table [    row] =                row  ^                result;
-        row_right_table[rev_row] =            rev_row  ^            rev_result;
-        col_up_table   [    row] = unpack_col(    row) ^ unpack_col(    result);
-        col_down_table [rev_row] = unpack_col(rev_row) ^ unpack_col(rev_result);
+        row_left_table [    row] =                 result; //It looks useless to only store changes, because you need to undo it
+        row_right_table[rev_row] =             rev_result;
+        col_up_table   [    row] = unpack_col(    result);
+        col_down_table [rev_row] = unpack_col(rev_result);
     }
 }
 
+static inline board_t execute_move_0(board_t board) {
+    board_t t = transpose(board);
+    board_t ret = col_up_table[(t >>  0) & ROW_MASK] <<  0 |
+                  col_up_table[(t >> 16) & ROW_MASK] <<  4 |
+                  col_up_table[(t >> 32) & ROW_MASK] <<  8 |
+                  col_up_table[(t >> 48) & ROW_MASK] << 12;
+    return ret;
+}
 
-//g++ -m64 -shared -o botLib.dll 2048.cpp
-//python 2048.py
+static inline void printBits(uint16_t num){
+    uint16_t temp = 0;
+    for(int i = 0; i < 16; i++){
+        temp <<= 1;
+        temp += num & 0x1;
+        num >>= 1;
+    }
+
+    for(int i = 0; i < 16; i++){
+        cout << (temp & 0x1); 
+        temp >>= 1;
+
+        if(i+1 % 4 == 0){
+            cout << " ";
+        }
+    }
+    cout << "\n";
+}
+
+static inline int countDistinctTiles(board_t board){
+    uint16_t bitset = 0;
+    while(board){
+        bitset |= 1 << (board & 0xf);
+        board >>= 4;
+    }
+
+    bitset >>= 1;
+
+    int count = 0;
+    bitset = 0x10111;
+    while(bitset){ //Brian Kernighan's algorithm 
+        printBits(bitset);
+        bitset &= bitset - 1;
+        count++;
+    }
+    return count;
+}
+
+int main(int argc, char** argv){
+    board_t board = 0x123456789AFCDFFULL;
+    printBoard(board);
+
+    cout << countDistinctTiles(board) << endl;
+
+    // board_t temp = 0x0ULL;
+    // temp |= unpack_col(board & 0xFFFFULL);
+    // temp |= unpack_col(board & 0xFFFF000ULL) << 4;
+    // temp |= unpack_col(board >> 32 & 0xFFFFULL) << 8;
+    // temp |= unpack_col(board >> 48 & 0xFFFFULL) << 12;
+    // printBoard(temp);
+
+    init_tables();
+    // printBoard(transpose(board));
+
+    printBoard(execute_move_0(transpose(board)));
+
+    // cout << "answer: " << countEmpty(board);
+}
