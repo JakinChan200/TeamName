@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "platdefs.h"
 
 /* The fundamental trick: the 4x4 board is represented as a 64-bit word,
  * with each board square packed into a single 4-bit nibble.
@@ -17,8 +16,8 @@ typedef uint16_t row_t;
 
 //store the depth at which the heuristic was recorded as well as the actual heuristic
 struct trans_table_entry_t{
-    uint8_t depth;
-    float heuristic;
+    uint8_t depth = 0;
+    float heuristic = 0;
 };
 
 static const board_t ROW_MASK = 0xFFFFULL;

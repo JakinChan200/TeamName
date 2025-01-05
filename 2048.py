@@ -8,7 +8,7 @@ import threading
 from botLib import botLib
 
 # import ctypes
-# botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/botLib.dll')
+# botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/bin/2048.dll')
 
 
 botLib.myprint()

@@ -9,17 +9,19 @@
 
 #include "2048.h"
 
-#include "config.h"
-#if defined(HAVE_UNORDERED_MAP)
-    #include <unordered_map>
-    typedef std::unordered_map<board_t, trans_table_entry_t> trans_table_t;
-#elif defined(HAVE_TR1_UNORDERED_MAP)
-    #include <tr1/unordered_map>
-    typedef std::tr1::unordered_map<board_t, trans_table_entry_t> trans_table_t;
-#else
-    #include <map>
-    typedef std::map<board_t, trans_table_entry_t> trans_table_t;
-#endif
+
+// #if defined(HAVE_UNORDERED_MAP)
+//     #include <unordered_map>
+//     typedef std::unordered_map<board_t, trans_table_entry_t> trans_table_t;
+// #elif defined(HAVE_TR1_UNORDERED_MAP)
+//     #include <tr1/unordered_map>
+//     typedef std::tr1::unordered_map<board_t, trans_table_entry_t> trans_table_t;
+// #else
+//     #include <map>
+//     typedef std::map<board_t, trans_table_entry_t> trans_table_t;
+// #endif
+
+typedef trans_table_entry_t trans_table_t[65536];
 
 void myprint(){
     printf("hello world\n");
@@ -320,119 +322,119 @@ static float score_board(board_t board) {
 static const float CPROB_THRESH_BASE = 0.0001f;
 static const int CACHE_DEPTH_LIMIT  = 15;
 
-// static float score_tilechoose_node(eval_state &state, board_t board, float cprob) {
-//     if (cprob < CPROB_THRESH_BASE || state.curdepth >= state.depth_limit) {
-//         state.maxdepth = std::max(state.curdepth, state.maxdepth);
-//         return score_heur_board(board);
-//     }
-//     if (state.curdepth < CACHE_DEPTH_LIMIT) {
-//         const trans_table_t::iterator &i = state.trans_table.find(board);
-//         if (i != state.trans_table.end()) {
-//             trans_table_entry_t entry = i->second;
-//             /*
-//             return heuristic from transposition table only if it means that
-//             the node will have been evaluated to a minimum depth of state.depth_limit.
-//             This will result in slightly fewer cache hits, but should not impact the
-//             strength of the ai negatively.
-//             */
-//             if(entry.depth <= state.curdepth)
-//             {
-//                 state.cachehits++;
-//                 return entry.heuristic;
-//             }
-//         }
-//     }
+static float score_tilechoose_node(eval_state &state, board_t board, float cprob) {
+    if (cprob < CPROB_THRESH_BASE || state.curdepth >= state.depth_limit) {
+        state.maxdepth = std::max(state.curdepth, state.maxdepth);
+        return score_heur_board(board);
+    }
+    if (state.curdepth < CACHE_DEPTH_LIMIT) {
+        // const trans_table_t::iterator &i = state.trans_table.find(board);
+        if (state.trans_table) {
+            trans_table_entry_t entry = state.trans_table[board];
+            /*
+            return heuristic from transposition table only if it means that
+            the node will have been evaluated to a minimum depth of state.depth_limit.
+            This will result in slightly fewer cache hits, but should not impact the
+            strength of the ai negatively.
+            */
+            if(entry.depth <= state.curdepth)
+            {
+                state.cachehits++;
+                return entry.heuristic;
+            }
+        }
+    }
 
-//     int num_open = count_empty(board);
-//     cprob /= num_open;
+    int num_open = count_empty(board);
+    cprob /= num_open;
 
-//     float res = 0.0f;
-//     board_t tmp = board;
-//     board_t tile_2 = 1;
-//     while (tile_2) {
-//         if ((tmp & 0xf) == 0) {
-//             res += score_move_node(state, board |  tile_2      , cprob * 0.9f) * 0.9f;
-//             res += score_move_node(state, board | (tile_2 << 1), cprob * 0.1f) * 0.1f;
-//         }
-//         tmp >>= 4;
-//         tile_2 <<= 4;
-//     }
-//     res = res / num_open;
+    float res = 0.0f;
+    board_t tmp = board;
+    board_t tile_2 = 1;
+    while (tile_2) {
+        if ((tmp & 0xf) == 0) {
+            res += score_move_node(state, board |  tile_2      , cprob * 0.9f) * 0.9f;
+            res += score_move_node(state, board | (tile_2 << 1), cprob * 0.1f) * 0.1f;
+        }
+        tmp >>= 4;
+        tile_2 <<= 4;
+    }
+    res = res / num_open;
 
-//     if (state.curdepth < CACHE_DEPTH_LIMIT) {
-//         trans_table_entry_t entry = {static_cast<uint8_t>(state.curdepth), res};
-//         state.trans_table[board] = entry;//
-//     }
+    if (state.curdepth < CACHE_DEPTH_LIMIT) {
+        trans_table_entry_t entry = {static_cast<uint8_t>(state.curdepth), res};
+        state.trans_table[board] = entry;//
+    }
 
-//     return res;
-// }
+    return res;
+}
 
-// static float score_move_node(eval_state &state, board_t board, float cprob) {
-//     float best = 0.0f;
-//     state.curdepth++;
-//     for (int move = 0; move < 4; ++move) {
-//         board_t newboard = execute_move(move, board);
-//         state.moves_evaled++;
+static float score_move_node(eval_state &state, board_t board, float cprob) {
+    float best = 0.0f;
+    state.curdepth++;
+    for (int move = 0; move < 4; ++move) {
+        board_t newboard = execute_move(move, board);
+        state.moves_evaled++;
 
-//         if (board != newboard) {
-//             best = std::max(best, score_tilechoose_node(state, newboard, cprob));
-//         }
-//     }
-//     state.curdepth--;
+        if (board != newboard) {
+            best = std::max(best, score_tilechoose_node(state, newboard, cprob));
+        }
+    }
+    state.curdepth--;
 
-//     return best;
-// }
+    return best;
+}
 
-// static float _score_toplevel_move(eval_state &state, board_t board, int move) {
-//     //int maxrank = get_max_rank(board);
-//     board_t newboard = execute_move(move, board);
+static float _score_toplevel_move(eval_state &state, board_t board, int move) {
+    //int maxrank = get_max_rank(board);
+    board_t newboard = execute_move(move, board);
 
-//     if(board == newboard)
-//         return 0;
+    if(board == newboard)
+        return 0;
 
-//     return score_tilechoose_node(state, newboard, 1.0f) + 1e-6;
-// }
+    return score_tilechoose_node(state, newboard, 1.0f) + 1e-6;
+}
 
-// float score_toplevel_move(board_t board, int move) {
-//     float res;
-//     struct timeval start, finish;
-//     double elapsed;
-//     eval_state state;
-//     state.depth_limit = std::max(3, count_distinct_tiles(board) - 2);
+float score_toplevel_move(board_t board, int move) {
+    float res;
+    // struct timeval start, finish;
+    double elapsed;
+    eval_state state;
+    state.depth_limit = std::max(3, count_distinct_tiles(board) - 2);
 
-//     gettimeofday(&start, NULL);
-//     res = _score_toplevel_move(state, board, move);
-//     gettimeofday(&finish, NULL);
+    // gettimeofday(&start, NULL);
+    res = _score_toplevel_move(state, board, move);
+    // gettimeofday(&finish, NULL);
 
-//     elapsed = (finish.tv_sec - start.tv_sec);
-//     elapsed += (finish.tv_usec - start.tv_usec) / 1000000.0;
+    // elapsed = (finish.tv_sec - start.tv_sec);
+    // elapsed += (finish.tv_usec - start.tv_usec) / 1000000.0;
 
-//     printf("Move %d: result %f: eval'd %ld moves (%d cache hits, %d cache size) in %.2f seconds (maxdepth=%d)\n", move, res,
-//         state.moves_evaled, state.cachehits, (int)state.trans_table.size(), elapsed, state.maxdepth);
+    // printf("Move %d: result %f: eval'd %ld moves (%d cache hits, %d cache size) in %.2f seconds (maxdepth=%d)\n", move, res,
+    //     state.moves_evaled, state.cachehits, (int)state.trans_table.size(), elapsed, state.maxdepth);
 
-//     return res;
-// }
+    return res;
+}
 
-// /* Find the best move for a given board. */
-// int find_best_move(board_t board) {
-//     int move;
-//     float best = 0;
-//     int bestmove = -1;
+/* Find the best move for a given board. */
+int find_best_move(board_t board) {
+    int move;
+    float best = 0;
+    int bestmove = -1;
 
-//     printBoard(board);
-//     printf("Current scores: heur %.0f, actual %.0f\n", score_heur_board(board), score_board(board));
+    // printBoard(board);
+    // printf("Current scores: heur %.0f, actual %.0f\n", score_heur_board(board), score_board(board));
 
-//     for(move=0; move<4; move++) {
-//         float res = score_toplevel_move(board, move);
+    for(move=0; move<4; move++) {
+        float res = score_toplevel_move(board, move);
 
-//         if(res > best) {
-//             best = res;
-//             bestmove = move;
-//         }
-//     }
+        if(res > best) {
+            best = res;
+            bestmove = move;
+        }
+    }
 
-//     return bestmove;
-// }
+    return bestmove;
+}
 
 // int ask_for_move(board_t board) {
 //     int move;

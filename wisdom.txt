@@ -8,3 +8,5 @@ printf vs cout
     https://stackoverflow.com/questions/2872543/printf-vs-cout-in-c
 
 Make sure the executable C++ and the Python is both m64
+
+C does not have a map, but ctypes extends C, but can run C++?
