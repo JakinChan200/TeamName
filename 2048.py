@@ -5,7 +5,7 @@ import random
 import copy
 import threading
 
-from botLib import botLib, convertBoardToC
+from botLib import botLib
 
 # import ctypes
 # botLib = ctypes.CDLL('C:/Users/Jakin/TeamName/botLib.dll')
