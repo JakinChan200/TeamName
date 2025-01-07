@@ -1,4 +1,5 @@
 #include <stdlib.h>
+// #include "platdefs.h"
 
 /* The fundamental trick: the 4x4 board is represented as a 64-bit word,
  * with each board square packed into a single 4-bit nibble.
@@ -17,7 +18,7 @@ typedef uint16_t row_t;
 //store the depth at which the heuristic was recorded as well as the actual heuristic
 struct trans_table_entry_t{
     uint8_t depth = 0;
-    float heuristic = 0;
+    float heuristic = -1;
 };
 
 static const board_t ROW_MASK = 0xFFFFULL;
@@ -58,7 +59,7 @@ board_t execute_move(int move, board_t board);
 
 typedef int (*get_move_func_t)(board_t);
 // float score_toplevel_move(board_t board, int move);
-// int find_best_move(board_t board);
+int find_best_move(board_t board);
 // int ask_for_move(board_t board);
 // void play_game(get_move_func_t get_move);
 
