@@ -426,3 +426,11 @@ int find_best_move(board_t board) {
 
     return bestmove;
 }
+
+//why are we transposing the table, but not transposing back when moving up and down
+//Cause we are doing more operations on it?
+
+
+
+//g++ -m64 -shared -o botLib.dll 2048.cpp
+//python 2048.py

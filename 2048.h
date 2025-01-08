@@ -58,10 +58,7 @@ void init_tables();
 board_t execute_move(int move, board_t board);
 
 typedef int (*get_move_func_t)(board_t);
-// float score_toplevel_move(board_t board, int move);
 int find_best_move(board_t board);
-// int ask_for_move(board_t board);
-// void play_game(get_move_func_t get_move);
 
 #ifdef __cplusplus
 }

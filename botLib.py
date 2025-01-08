@@ -50,18 +50,6 @@ def from_c_board(n):
         board.append(row)
     return board
 
-def to_c_index(n):
-    return [0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768].index(n)
-
-def from_c_index(c):
-    if c == 0: return 0
-    return 2**c
-    
-    # for row in board:
-    #     for c in row:
-    #         newBoard |= int(c) << (4*i)
-    #         i += 1
-    # return newBoard
 
 
 # botLib.add.argtypes = [ctypes.c_int, ctypes.c_int]
